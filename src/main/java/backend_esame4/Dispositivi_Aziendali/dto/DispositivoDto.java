@@ -11,12 +11,12 @@ import lombok.Data;
 
 public class DispositivoDto {
 
-    private int id;
-
     @NotNull(message = "Lo stato del dispositivo non può essere nullo")
     private StatoDispositivo statoDispositivo;
     @NotNull(message = "L'ID del dipendente non può essere nullo")
     private  int dipendenteId;
     @NotBlank(message = "Il tipo non può essere vuoto")
     private String tipo;
+
+
 }

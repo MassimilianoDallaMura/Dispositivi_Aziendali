@@ -15,7 +15,7 @@ import java.util.List;
 @Data
 public class DipendenteDto {
 
-    private int username;
+
     @NotBlank(message = "Il nome non può essere vuoto")
     private String nome;
 
@@ -25,9 +25,11 @@ public class DipendenteDto {
     @Email(message = "Deve essere un indirizzo email valido")
     @NotBlank(message = "L'email non può essere vuota")
     private String email;
+    @NotBlank(message = "La password non può essere vuota")
+    private String password;
 
 
-    private List<Long> dispositiviId;
+
 
 
 }

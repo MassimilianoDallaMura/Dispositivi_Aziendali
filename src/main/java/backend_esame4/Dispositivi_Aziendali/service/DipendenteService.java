@@ -1,17 +1,20 @@
 package backend_esame4.Dispositivi_Aziendali.service;
 
 import backend_esame4.Dispositivi_Aziendali.dto.DipendenteDto;
-import backend_esame4.Dispositivi_Aziendali.dto.DispositivoDto;
+
+import backend_esame4.Dispositivi_Aziendali.enums.Role;
+import backend_esame4.Dispositivi_Aziendali.exception.BadRequestException;
 import backend_esame4.Dispositivi_Aziendali.exception.DipendenteNonTrovatoException;
-import backend_esame4.Dispositivi_Aziendali.exception.DispositivoNonTrovatoException;
+
 import backend_esame4.Dispositivi_Aziendali.model.Dipendente;
 
-import backend_esame4.Dispositivi_Aziendali.model.Dispositivo;
+
 import backend_esame4.Dispositivi_Aziendali.repository.DipendenteRepository;
 import backend_esame4.Dispositivi_Aziendali.repository.DispositivoRepository;
 import com.cloudinary.Cloudinary;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
+
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -28,16 +31,26 @@ public class DipendenteService {
     @Autowired
     private DispositivoRepository dispositivoRepository;
     @Autowired
+    private PasswordEncoder passwordEncoder;
+    @Autowired
     private Cloudinary cloudinary;
 
     public String saveDipendente(DipendenteDto dipendenteDto) {
-        Dipendente dipendente = new Dipendente();
-        dipendente.setNome(dipendenteDto.getNome());
-        dipendente.setCognome(dipendenteDto.getCognome());
-        dipendente.setEmail(dipendenteDto.getEmail());
+        if(getDipendenteByEmail(dipendenteDto.getEmail()).isEmpty()){
+            Dipendente dipendente = new Dipendente();
+            dipendente.setNome(dipendenteDto.getNome());
+            dipendente.setCognome(dipendenteDto.getCognome());
+            dipendente.setEmail(dipendenteDto.getEmail());
+            dipendente.setPassword(passwordEncoder.encode(dipendenteDto.getPassword())); //serve per codificare la password
+            dipendente.setRole(Role.USER);
 
-        dipendenteRepository.save(dipendente);
-        return "Dipendente con username " + dipendente.getUsername() + " salvato correttamente";
+            dipendenteRepository.save(dipendente);
+            return "Dipendente con username " + dipendente.getUsername() + " salvato correttamente";
+        }
+        else{
+            throw new BadRequestException("L'email del dipendente " + dipendenteDto.getEmail() + " già presente");
+        }
+
     }
 
     public List<Dipendente> getDipendenti(){
@@ -49,26 +62,15 @@ public class DipendenteService {
     }
 
     public  Dipendente updateDipendente(int username, DipendenteDto dipendenteDto){
-        Optional<Dipendente> dipendenteOptional = getDipendenteByUsername(Integer.parseInt(String.valueOf(username)));
+        Optional<Dipendente> dipendenteOptional = getDipendenteByUsername(username);
 
-        if (dipendenteOptional.isPresent()){
+        if (dipendenteOptional.isPresent()) {
             Dipendente dipendente = dipendenteOptional.get();
             dipendente.setNome(dipendenteDto.getNome());
             dipendente.setCognome(dipendenteDto.getCognome());
             dipendente.setEmail(dipendenteDto.getEmail());
-
-            Optional<Dispositivo> dispositivoOptional = dispositivoRepository.findById((long) dipendenteDto.getUsername());
-
-            if (dispositivoOptional.isPresent()) {
-               Dispositivo dispositivo = dispositivoOptional.get();
-                dipendente.setDispositivi((List<Dispositivo>) dispositivo);
-                dipendenteRepository.save(dipendente);
-                return dipendente;
-            }
-
-            else {
-                throw new DispositivoNonTrovatoException("Dispositivo con id=" + dipendenteDto.getDispositiviId() + " non trovato");
-            }
+            dipendente.setPassword(passwordEncoder.encode(dipendenteDto.getPassword())); //serve per codificare la password
+            return dipendenteRepository.save(dipendente);
         }
         else {
             throw new DipendenteNonTrovatoException("Dipendente con username=" + username + " non trovato");
@@ -76,7 +78,7 @@ public class DipendenteService {
     }
 
     public String deleteDipendente(int username) {
-        Optional<Dipendente> dipendenteOptional = dipendenteRepository.findById(String.valueOf(username));
+        Optional<Dipendente> dipendenteOptional = getDipendenteByUsername(username);
 
         if (dipendenteOptional.isPresent()) {
             dipendenteRepository.delete(dipendenteOptional.get());
@@ -100,6 +102,11 @@ public class DipendenteService {
         else{
             throw new DipendenteNonTrovatoException("Dipendente con username=" + username + " non trovato");
         }
+    }
+
+    public Optional<Dipendente> getDipendenteByEmail(String email){
+        return dipendenteRepository.findByEmail(email);
+
     }
 
 }

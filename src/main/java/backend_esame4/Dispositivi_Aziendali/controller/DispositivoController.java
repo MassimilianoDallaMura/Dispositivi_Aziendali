@@ -11,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -26,6 +27,7 @@ public class DispositivoController {
 
     @PostMapping("/api/dispositivi")
     @ResponseStatus(HttpStatus.CREATED)
+    @PreAuthorize("hasAuthority('ADMIN')")
     public String saveDispositivo(@RequestBody @Validated DispositivoDto dispositivoDto, BindingResult bindingResult){
         if(bindingResult.hasErrors()){
             throw new BadRequestException((bindingResult.getAllErrors().stream(). //creiamo una stringa unica con tt gli errori
@@ -35,12 +37,14 @@ public class DispositivoController {
     }
 
     @GetMapping("/api/dispositivi")
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
     public List<Dispositivo> getDispositivi(){
         return dispositivoService.getDispositivi();
     }
 
     @GetMapping("/api/dispositivi/{id}")
-    public Dispositivo getDispositivoById(@PathVariable long id) throws DispositivoNonTrovatoException{
+    @PreAuthorize("hasAnyAuthority('ADMIN', 'USER')")
+    public Dispositivo getDispositivoById(@PathVariable int id) throws DispositivoNonTrovatoException{
         Optional<Dispositivo> dispositivoOptional = dispositivoService.getDispositivoById(id);
 
         if (dispositivoOptional.isPresent()){
@@ -52,7 +56,8 @@ public class DispositivoController {
     }
 
     @PutMapping("/api/dispositivi/{id}")
-    public Dispositivo updateDispositivo(@PathVariable long id, @RequestBody @Validated DispositivoDto dispositivoDto, BindingResult bindingResult){
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public Dispositivo updateDispositivo(@PathVariable int id, @RequestBody @Validated DispositivoDto dispositivoDto, BindingResult bindingResult){
         if(bindingResult.hasErrors()){
             throw new BadRequestException((bindingResult.getAllErrors().stream(). //creiamo una stringa unica con tt gli errori
                     map(objectError -> objectError.getDefaultMessage()).reduce("", (s, s2) -> s+s2))); //map da ad ogni errore il messaggio; reduce per fusione che concatena accumulatore con ogni stringa
@@ -61,13 +66,15 @@ public class DispositivoController {
 
     }
     @PostMapping("/api/dispositivi/{id}/assegna")
-    public Dispositivo assignDipendenteToDispositivo(@PathVariable long id, @RequestParam long dipendenteId) {
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public Dispositivo assignDipendenteToDispositivo(@PathVariable int id, @RequestParam int dipendenteId) {
         return dispositivoService.assignDipendenteToDispositivo(id, dipendenteId);
     }
 
 
     @DeleteMapping("/api/dispositivi/{id}")
-    public String deleteDispositivo(@PathVariable long id) throws DispositivoNonTrovatoException {
+    @PreAuthorize("hasAuthority('ADMIN')")
+    public String deleteDispositivo(@PathVariable int id) throws DispositivoNonTrovatoException {
         return dispositivoService.deleteDispositivo(id);
     }
 }

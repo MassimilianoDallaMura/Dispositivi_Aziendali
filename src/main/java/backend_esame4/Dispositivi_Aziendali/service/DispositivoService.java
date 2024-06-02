@@ -24,30 +24,40 @@ public class DispositivoService {
     @Autowired
     private DispositivoRepository dispositivoRepository;
     @Autowired
-    DipendenteRepository dipendenteRepository;
+    DipendenteService dipendenteService;
 
 
     public String saveDispositivo(DispositivoDto dispositivoDto){     //l'aula arriva dal client e va salvata nel db
         Dispositivo dispositivo = new Dispositivo();
         dispositivo.setTipo(dispositivoDto.getTipo());
         dispositivo.setStatoDispositivo(dispositivoDto.getStatoDispositivo());
-        dispositivo.setTipo(dispositivoDto.getTipo());
-        dispositivoRepository.save(dispositivo);
-        return "Dispositivo con id=" + dispositivo.getId() + " aggiunto con successo";
+
+        Optional<Dipendente> dipendenteOptional = dipendenteService.getDipendenteByUsername(dispositivoDto.getDipendenteId());
+
+        if(dipendenteOptional.isPresent()){
+            Dipendente dipendente = dipendenteOptional.get();
+            dispositivo.setDipendente(dipendente);
+
+            dispositivoRepository.save(dispositivo);
+            return "Dispositivo con id=" + dispositivo.getId() + " aggiunto con successo";
+        }
+        else{
+            throw new DipendenteNonTrovatoException("Dipendente con id=" + dispositivoDto.getDipendenteId() + " da associare al dispositivo non trovato");
+        }
 
     }
 
 
-    public Optional<Dispositivo> getDispositivoById(long id){
-        return dispositivoRepository.findById(id);
+    public Optional<Dispositivo> getDispositivoById(int id){
+        return dispositivoRepository.findById((long) id);
     }
 
     public List<Dispositivo> getDispositivi(){
         return dispositivoRepository.findAll();
     }
 
-    public String deleteDispositivo(Long id) {
-        Optional<Dispositivo> dispositivoOptional = dispositivoRepository.findById(id);
+    public String deleteDispositivo(int id) {
+        Optional<Dispositivo> dispositivoOptional = getDispositivoById(id);
 
         if (dispositivoOptional.isPresent()) {
             dispositivoRepository.delete(dispositivoOptional.get());
@@ -58,7 +68,7 @@ public class DispositivoService {
     }
 
 
-    public  Dispositivo updateDispositivo(long id, DispositivoDto dispositivoDto){
+    public  Dispositivo updateDispositivo(int id, DispositivoDto dispositivoDto){
         Optional<Dispositivo> dispositivoOptional = getDispositivoById(id);
 
         if (dispositivoOptional.isPresent()){
@@ -66,16 +76,29 @@ public class DispositivoService {
             dispositivo.setStatoDispositivo(dispositivoDto.getStatoDispositivo());
             dispositivo.setTipo(dispositivoDto.getTipo());
 
-            return dispositivoRepository.save(dispositivo);
+            Optional<Dipendente> dipendenteOptional = dipendenteService.getDipendenteByUsername(dispositivoDto.getDipendenteId());
+
+            if(dipendenteOptional.isPresent()){
+                Dipendente dipendente = dipendenteOptional.get();
+                dispositivo.setDipendente(dipendente);
+
+                return dispositivoRepository.save(dispositivo);
+
+            }
+            else{
+                throw new DipendenteNonTrovatoException("Dipendente con id=" + dispositivoDto.getDipendenteId() + " da associare al dispositivo non trovato");
+            }
+
+
         }
         else {
             throw new DispositivoNonTrovatoException("Dispositivo con id=" + getDispositivoById(id) + " non trovato");
         }
     }
 
-    public Dispositivo assignDipendenteToDispositivo(long id, long dipendenteId) {
-        Optional<Dispositivo> dispositivoOptional = dispositivoRepository.findById(id);
-        Optional<Dipendente> dipendenteOptional = dipendenteRepository.findById(String.valueOf(dipendenteId));
+    public Dispositivo assignDipendenteToDispositivo(int id, int dipendenteId) {
+        Optional<Dispositivo> dispositivoOptional = getDispositivoById(id);
+        Optional<Dipendente> dipendenteOptional = dipendenteService.getDipendenteByUsername(dipendenteId);
 
         if (dispositivoOptional.isPresent() && dipendenteOptional.isPresent()) {
             Dispositivo dispositivo = dispositivoOptional.get();
